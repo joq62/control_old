@@ -1,7 +1,7 @@
 %% Author: uabjle
 %% Created: 10 dec 2012
 %% Description: TODO: Add description to application_org
--module(orchistrate_service_app).
+-module(control_app).
 
 -behaviour(application). 
 %% --------------------------------------------------------------------
@@ -45,7 +45,7 @@
 %% --------------------------------------------------------------------
 start(_Type, _StartArgs) ->
     Args=[],
-    {ok,Pid}= orchistrate_service_sup:start_link(Args),
+    {ok,Pid}= control_sup:start_link(Args),
     {ok,Pid}.
 %% --------------------------------------------------------------------
 %% Func: stop/1

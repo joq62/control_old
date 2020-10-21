@@ -4,7 +4,7 @@
 %%%
 %%% Created : 10 dec 2012
 %%% -------------------------------------------------------------------
--module(orchistrate_service_sup). 
+-module(control_sup). 
 
 -behaviour(supervisor).
 %% --------------------------------------------------------------------
@@ -51,7 +51,7 @@ start_link(Args)->
 %% --------------------------------------------------------------------
 init(Args) ->
     {ok,{{one_for_one,5,10}, 
-	 [?CHILD(orchistrate_service,worker,Args)]}}.
+	 [?CHILD(control,worker,Args)]}}.
 
 %% ====================================================================
 %% Internal functions
