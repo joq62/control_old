@@ -27,7 +27,9 @@
 -export([create_service/4,delete_service/4,
 	 create_deployment_spec/3,
 	 delete_deployment_spec/2,
-	 read_deployment_spec/2
+	 read_deployment_spec/2,
+	 add_deployment_spec/2,
+	 remove_deployment_spec/2
 	]).
 
 -export([start/0,
@@ -63,6 +65,11 @@ create_service(ServiceId,Vsn,HostId,VmId)->
 delete_service(ServiceId,Vsn,HostId,VmId)->
     gen_server:call(?MODULE, {delete_service,ServiceId,Vsn,HostId,VmId},infinity).  
 
+
+add_deployment_spec(AppId,AppVsn)->
+    gen_server:call(?MODULE, {add_deployment_spec,AppId,AppVsn},infinity).
+remove_deployment_spec(AppId,AppVsn)->
+    gen_server:call(?MODULE, {remove_deployment_spec,AppId,AppVsn},infinity).
 
 create_deployment_spec(AppId,AppVsn,ServiceList)->
     gen_server:call(?MODULE, {create_deployment_spec,AppId,AppVsn,ServiceList},infinity).
@@ -113,6 +120,14 @@ handle_call({create_service,ServiceId,Vsn,HostId,VmId},_From,State) ->
     {reply, Reply, State};
 
 handle_call({delete_service,ServiceId,Vsn,HostId,VmId},_From,State) ->
+    Reply=not_implemented,
+    {reply, Reply, State};
+
+handle_call({add_deployment_spec,_AppId,_AppVsn},_From,State) ->
+    Reply=not_implemented,
+    {reply, Reply, State};
+
+handle_call({remove_deployment_spec,_AppId,_AppVsn},_From,State) ->
     Reply=not_implemented,
     {reply, Reply, State};
 
