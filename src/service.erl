@@ -23,10 +23,18 @@
 create(ServiceId,Vsn,HostId,VmId)->
     Vm=list_to_atom(VmId++"@"++HostId),
     false=rpc:call(Vm,filelib,is_dir,[filename:join([".",VmId,ServiceId])]),
-    {ServiceId,Vsn,GitRepoUser}=db_service:read(ServiceId,Vsn),
-    PassWd=db_passwd:read(GitRepoUser),
+    [{ServiceId,Vsn,GitRepoUser}]=db_service_def:read(ServiceId,Vsn),
+    io:format("ServiceId,Vsn,GitRepoUser ~p~n",[{?MODULE,?LINE,ServiceId,Vsn,GitRepoUser}]),
+    [{_,PassWd}]=db_passwd:read(GitRepoUser),
     ok=rpc:call(Vm,file,make_dir,[VmId++"/"++ServiceId],5000),
     rpc:call(Vm,os,cmd,["git clone  https://"++GitRepoUser++":"++PassWd++"@github.com/"++GitRepoUser++"/"++ServiceId++".git"],5000),
+
+%    io:format("~p~n",[{?MODULE,?LINE,"git clone  https://"++GitRepoUser++":"++PassWd++"@github.com/"++GitRepoUser++"/"++ServiceId++".git"}]),
+
+  %  timer:sleep(200*1000),
+
+ %   io:format("~p~n",[{?MODULE,?LINE, rpc:call(Vm,os,cmd,["git clone  https://"++GitRepoUser++":"++PassWd++"@github.com/"++GitRepoUser++"/"++ServiceId++".git"],5000)}]),
+    
     rpc:call(Vm,os,cmd,["cp -r "++ServiceId++"/*"++" "++VmId++"/"++ServiceId],5000),
     rpc:call(Vm,os,cmd,["git clone  https://"++GitRepoUser++":"++PassWd++"@github.com/"++GitRepoUser++"/include.git"],5000),
     rpc:call(Vm,os,cmd,["mv include "++VmId],5000),

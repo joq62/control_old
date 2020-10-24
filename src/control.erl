@@ -24,6 +24,8 @@
 %% --------------------------------------------------------------------
 %% Definitions 
 %% --------------------------------------------------------------------
+-define(HbInterval,40*1000).
+
 -export([create_service/4,delete_service/4,
 	 create_deployment_spec/3,
 	 delete_deployment_spec/2,
@@ -96,8 +98,7 @@ heart_beat(Interval,Result)->
 %
 %% --------------------------------------------------------------------
 init([]) ->
-    {ok,HbInterval}= application:get_env(hb_interval),
-    spawn(fun()->h_beat(HbInterval) end),     
+    spawn(fun()->h_beat(?HbInterval) end),     
     
     {ok, #state{}}.   
     
@@ -116,11 +117,11 @@ handle_call({ping},_From,State) ->
     {reply, Reply, State};
 
 handle_call({create_service,ServiceId,Vsn,HostId,VmId},_From,State) ->
-    Reply=not_implemented,
+    Reply=rpc:call(node(),service,create,[ServiceId,Vsn,HostId,VmId],2*5000),
     {reply, Reply, State};
 
 handle_call({delete_service,ServiceId,Vsn,HostId,VmId},_From,State) ->
-    Reply=not_implemented,
+    Reply=rpc:call(node(),service,delete,[ServiceId,Vsn,HostId,VmId],5000),
     {reply, Reply, State};
 
 handle_call({add_deployment_spec,_AppId,_AppVsn},_From,State) ->
@@ -131,16 +132,16 @@ handle_call({remove_deployment_spec,_AppId,_AppVsn},_From,State) ->
     Reply=not_implemented,
     {reply, Reply, State};
 
-handle_call({create_deployment_spec,_AppId,_AppVsn,_ServiceList},_From,State) ->
-    Reply=not_implemented,
+handle_call({create_deployment_spec,AppId,AppVsn,ServiceList},_From,State) ->
+    Reply=rpc:call(node(),deployment,create_spec,[AppId,AppVsn,ServiceList],5000),
     {reply, Reply, State};
 
-handle_call({delete_deployment_spec,_AppId,_AppVsn},_From,State) ->
-    Reply=not_implemented,
+handle_call({delete_deployment_spec,AppId,AppVsn},_From,State) ->
+    Reply=rpc:call(node(),deployment,delete_spec,[AppId,AppVsn],5000),
     {reply, Reply, State};
 
-handle_call({read_deployment_spec,_AppId,_AppVsn},_From,State) ->
-    Reply=not_implemented,
+handle_call({read_deployment_spec,AppId,AppVsn},_From,State) ->
+    Reply=rpc:call(node(),deployment,read_spec,[AppId,AppVsn],5000),
     {reply, Reply, State};
 
 handle_call({stop}, _From, State) ->
@@ -158,10 +159,10 @@ handle_call(Request, From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% -------------------------------------------------------------------
-handle_cast({heart_beat,Interval,{Missing,Obsolite,FailedStarts}}, State) ->
-    NewState=State#state{missing=Missing,obsolite=Obsolite,failed=FailedStarts},
+handle_cast({heart_beat,Interval,_Result}, State) ->
+ %   io:format("h_beat  ~p~n",[{time(),?MODULE,?LINE,Result}]),
     spawn(fun()->h_beat(Interval) end),    
-    {noreply, NewState};
+    {noreply, State};
 
 handle_cast(Msg, State) ->
     io:format("unmatched match cast ~p~n",[{?MODULE,?LINE,Msg}]),
@@ -205,7 +206,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% Returns: non
 %% --------------------------------------------------------------------
 h_beat(Interval)->
-%    io:format("h_beat  ~p~n",[{?MODULE,?LINE}]),
+%    
     timer:sleep(Interval),
 %    Result=rpc:call(node(),orchistrate,simple_campaign,[],15*1000),
     Result=glurk,

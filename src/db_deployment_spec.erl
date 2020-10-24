@@ -24,7 +24,8 @@ create_table()->
 				{type,bag}]),
     mnesia:wait_for_tables(?TABLE, 20000).
 
-create(Record) ->
+create(Id,Vsn,ServiceList) ->
+    Record=#deployment_spec{id=Id,vsn=Vsn,services=ServiceList},
     F = fun() -> mnesia:write(Record) end,
     mnesia:transaction(F).
 
