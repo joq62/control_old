@@ -38,11 +38,16 @@ read_all() ->
 
 
 
-read(Id) ->
+read(Id,Vsn)->
+    Z=do(qlc:q([X || X <- mnesia:table(?TABLE),
+		     X#?RECORD.id==Id,
+		     X#?RECORD.vsn==Vsn])),
+    [{SpecId,Vsn,ServiceId,ServiceVsn,Vm}||{?RECORD,SpecId,Vsn,ServiceId,ServiceVsn,Vm}<-Z].
+
+read(Id)->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE),
 		   X#?RECORD.id==Id])),
     [{SpecId,Vsn,ServiceId,ServiceVsn,Vm}||{?RECORD,SpecId,Vsn,ServiceId,ServiceVsn,Vm}<-Z].
-
 
 delete(Id,Vsn,ServiceId,ServiceVsn,Vm) ->
 

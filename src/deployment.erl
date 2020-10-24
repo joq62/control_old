@@ -27,7 +27,7 @@ create_spec(AppId,AppVsn,ServiceList)->
 		  db_deployment_spec:create(AppId,AppVsn,ServiceList),
 		  ok;
 	      Err->
-		  {error,[already_defined,AppId,AppVsn]}
+		  {error,[already_defined,Err,AppId,AppVsn]}
 	  end,
     Reply.
 
