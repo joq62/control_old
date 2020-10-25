@@ -7,57 +7,51 @@
 
 -record(deployment,
 	{
-	  id,
-	  vsn,
-	  service_id,
-	  service_vsn,
-	  vm
+	  deployment_id,
+	  deployment_spec_id,
+	  deployment_spec_vsn,
+	  date,
+	  time,
+	  sd_list
 	}).
 
 -define(TABLE,deployment).
 -define(RECORD,deployment).
 
-start() ->
-  %  mnesia:create_schema([node()]), %Should be started by db_mnesia
-  %  mnesia:start(),
-%    mnesia:create_table(?TABLE, [{attributes, record_info(fields, ?RECORD)}]),
- %   mnesia:wait_for_tables(?TABLE, 20000).   %Should be started by db_mnesia
-    ok.
 create_table()->
+    mnesia:create_table(?TABLE, [{attributes, record_info(fields, ?RECORD)}]),
+    mnesia:wait_for_tables([?TABLE], 20000).
+create_table(NodeList)->
     mnesia:create_table(?TABLE, [{attributes, record_info(fields, ?RECORD)},
-				{type,bag}]),
-    mnesia:wait_for_tables(?TABLE, 20000).
+				 {disc_copies,NodeList}]),
+    mnesia:wait_for_tables([?TABLE], 20000).
 
-create(Record) ->
+create(DeplId,SpecId,Vsn,Date,Time,SdList) ->
+    Record=#?RECORD{deployment_id=DeplId,
+		    deployment_spec_id=SpecId,
+		    deployment_spec_vsn=Vsn,
+		    date=Date,
+		    time=Time,
+		    sd_list=SdList},
+
     F = fun() -> mnesia:write(Record) end,
     mnesia:transaction(F).
 
 read_all() ->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
-    [{Id,Vsn,ServiceId,ServiceVsn,Vm}||{?RECORD,Id,Vsn,ServiceId,ServiceVsn,Vm}<-Z].
+    [{DeplId,SpecId,Vsn,Date,Time,SdList}||{?RECORD,DeplId,SpecId,Vsn,Date,Time,SdList}<-Z].
 
 
-
-read(Id,Vsn)->
+read(DeplId)->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE),
-		     X#?RECORD.id==Id,
-		     X#?RECORD.vsn==Vsn])),
-    [{SpecId,Vsn,ServiceId,ServiceVsn,Vm}||{?RECORD,SpecId,Vsn,ServiceId,ServiceVsn,Vm}<-Z].
+		   X#?RECORD.deployment_id==DeplId])),
+    [{XDeplId,SpecId,Vsn,Date,Time,SdList}||{?RECORD,XDeplId,SpecId,Vsn,Date,Time,SdList}<-Z].
 
-read(Id)->
-    Z=do(qlc:q([X || X <- mnesia:table(?TABLE),
-		   X#?RECORD.id==Id])),
-    [{SpecId,Vsn,ServiceId,ServiceVsn,Vm}||{?RECORD,SpecId,Vsn,ServiceId,ServiceVsn,Vm}<-Z].
-
-delete(Id,Vsn,ServiceId,ServiceVsn,Vm) ->
+delete(DeplId) ->
 
     F = fun() -> 
-		Deployment=[X||X<-mnesia:read({?TABLE,Id}),
-			       X#?RECORD.id==Id,
-			       X#?RECORD.vsn==Vsn,
-			       X#?RECORD.service_id==ServiceId,
-			       X#?RECORD.service_vsn==ServiceVsn,
-			       X#?RECORD.vm==Vm],
+		Deployment=[X||X<-mnesia:read({?TABLE,DeplId}),
+			       X#?RECORD.deployment_id==DeplId],
 		case Deployment of
 		    []->
 			mnesia:abort(?TABLE);

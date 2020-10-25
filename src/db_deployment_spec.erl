@@ -5,67 +5,51 @@
 -include_lib("stdlib/include/qlc.hrl").
 -record(deployment_spec,
 	{
-	  id,
+	  deployment_spec_id,
 	  vsn,
+	  restrictions,
 	  services
 	}).
 
 -define(TABLE,deployment_spec).
 -define(RECORD,deployment_spec).
 
-start() ->
-  %  mnesia:create_schema([node()]), %Should be started by db_mnesia
-  %  mnesia:start(),
-%    mnesia:create_table(?TABLE, [{attributes, record_info(fields, ?RECORD)}]),
- %   mnesia:wait_for_tables(?TABLE, 20000).   %Should be started by db_mnesia
-    ok.
 create_table()->
     mnesia:create_table(?TABLE, [{attributes, record_info(fields, ?RECORD)},
 				{type,bag}]),
-    mnesia:wait_for_tables(?TABLE, 20000).
+    mnesia:wait_for_tables([?TABLE], 20000).
+create_table(NodeList)->
+    mnesia:create_table(?TABLE, [{attributes, record_info(fields, ?RECORD)},
+				 {disc_copies,NodeList}]),
+    mnesia:wait_for_tables([?TABLE], 20000).
 
-create(Id,Vsn,ServiceList) ->
-    Record=#deployment_spec{id=Id,vsn=Vsn,services=ServiceList},
+create(SpecId,Vsn,Restrictions,Services) ->
+    Record=#deployment_spec{deployment_spec_id=SpecId,
+			    vsn=Vsn,
+			    restrictions=Restrictions,
+			    services=Services
+			   },
     F = fun() -> mnesia:write(Record) end,
     mnesia:transaction(F).
 
 read_all() ->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
-    [{Id,Vsn,Services}||{?RECORD,Id,Vsn,Services}<-Z].
+    [{SpecId,Vsn,Restrictions,Services}||{?RECORD,SpecId,Vsn,Restrictions,Services}<-Z].
 
 
 
-read(Id) ->
+read(SpecId,Vsn) ->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE),
-		   X#?RECORD.id==Id])),
-    [{Id,Vsn,Services}||{?RECORD,Id,Vsn,Services}<-Z].
-
-read(Id,Vsn) ->
-    Z=do(qlc:q([X || X <- mnesia:table(?TABLE),
-		   X#?RECORD.id==Id,
+		     X#?RECORD.deployment_spec_id==SpecId,
 		     X#?RECORD.vsn==Vsn])),
-    [{Id,Vsn,Services}||{?RECORD,Id,Vsn,Services}<-Z].
+    [{XSpecId,XVsn,XRestrictions,XServices}||{?RECORD,XSpecId,XVsn,XRestrictions,XServices}<-Z].
 
 
-update(Id,Vsn,NewVsn,NewServices) ->
-    F = fun() -> 
-		DeploymentSpec=[X||X<-mnesia:read({?TABLE,Id}),
-				   X#?RECORD.id==Id,X#?RECORD.vsn==Vsn],
-		case DeploymentSpec of
-		    []->
-			mnesia:abort(?TABLE);
-		    [S1]->
-			mnesia:delete_object(S1), 
-			mnesia:write(#?RECORD{id=Id,vsn=NewVsn,services=NewServices})
-		end
-	end,
-    mnesia:transaction(F).
-
-delete(Id,Vsn) ->
+delete(SpecId,Vsn) ->
 
     F = fun() -> 
-		DeploymentSpec=[X||X<-mnesia:read({?TABLE,Id}),
-			    X#?RECORD.id==Id,X#?RECORD.vsn==Vsn],
+		DeploymentSpec=[X||X<-mnesia:read({?TABLE,SpecId}),
+			    X#?RECORD.deployment_spec_id==SpecId,X#?RECORD.vsn==Vsn],
 		case DeploymentSpec of
 		    []->
 			mnesia:abort(?TABLE);

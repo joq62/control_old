@@ -17,9 +17,12 @@
 -define(RECORD,passwd).
 
 create_table()->
+    mnesia:create_table(?TABLE, [{attributes, record_info(fields, ?RECORD)}]),
+    mnesia:wait_for_tables([?TABLE], 20000).
+create_table(NodeList)->
     mnesia:create_table(?TABLE, [{attributes, record_info(fields, ?RECORD)},
-				{type,bag}]),
-    mnesia:wait_for_tables(?TABLE, 20000).
+				 {disc_copies,NodeList}]),
+    mnesia:wait_for_tables([?TABLE], 20000).
 
 create(Id,PassWd) ->
     Record=#?RECORD{user_id=Id,passwd=PassWd},
@@ -37,17 +40,11 @@ read(Id) ->
 		   X#?RECORD.user_id==Id])),
     [{XId,XPwd}||{?RECORD,XId,XPwd}<-Z].
 
-read(Id,Pwd) ->
-    Z=do(qlc:q([X || X <- mnesia:table(?TABLE),
-		   X#?RECORD.user_id==Id,
-		     X#?RECORD.passwd==Pwd])),
-    [{XId,XPwd}||{?RECORD,XId,XPwd}<-Z].
-
-update(Id,Pwd,NewPwd) ->
+update(Id,NewPwd) ->
     F = fun() -> 
-		PassWd=[X||X<-mnesia:read({?TABLE,Id}),
-			    X#?RECORD.user_id==Id,X#?RECORD.passwd==Pwd],
-		case PassWd of
+		RecordList=[X||X<-mnesia:read({?TABLE,Id}),
+			    X#?RECORD.user_id==Id],
+		case RecordList of
 		    []->
 			mnesia:abort(?TABLE);
 		    [S1]->
@@ -57,12 +54,12 @@ update(Id,Pwd,NewPwd) ->
 	end,
     mnesia:transaction(F).
 
-delete(Id,Pwd) ->
+delete(Id) ->
 
     F = fun() -> 
-		PassWd=[X||X<-mnesia:read({?TABLE,Id}),
-			    X#?RECORD.user_id==Id,X#?RECORD.passwd==Pwd],
-		case PassWd of
+		RecordList=[X||X<-mnesia:read({?TABLE,Id}),
+			    X#?RECORD.user_id==Id],
+		case RecordList of
 		    []->
 			mnesia:abort(?TABLE);
 		    [S1]->

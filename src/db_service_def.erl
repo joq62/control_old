@@ -6,9 +6,9 @@
 
 -record(service_def,
 	{
-	  id,
+	  service_id,
 	  vsn,
-	  source
+	  git_user_id
 	}).
 
 
@@ -17,18 +17,19 @@
 -define(TABLE,service_def).
 -define(RECORD,service_def).
 
-start() ->
-  %  mnesia:create_schema([node()]), %Should be started by db_mnesia
-  %  mnesia:start(),
-%    mnesia:create_table(?TABLE, [{attributes, record_info(fields, ?RECORD)}]),
- %   mnesia:wait_for_tables(?TABLE, 20000).   %Should be started by db_mnesia
-    ok.
 create_table()->
     mnesia:create_table(?TABLE, [{attributes, record_info(fields, ?RECORD)},
 				{type,bag}]),
-    mnesia:wait_for_tables(?TABLE, 20000).
+    mnesia:wait_for_tables([?TABLE], 20000).
+create_table(NodeList)->
+    mnesia:create_table(?TABLE, [{attributes, record_info(fields, ?RECORD)},
+				 {disc_copies,NodeList}]),
+    mnesia:wait_for_tables([?TABLE], 20000).
 
-create(Record) ->
+create(ServiceId,Vsn,GitUserId)->
+    Record=#?RECORD{ service_id=ServiceId,
+		     vsn=Vsn,
+		     git_user_id=GitUserId},
     F = fun() -> mnesia:write(Record) end,
     mnesia:transaction(F).
 
@@ -40,25 +41,25 @@ read_all() ->
 
 read(ServiceId) ->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE),
-		   X#?RECORD.id==ServiceId])),
-    [{ServiceId,Vsn,Source}||{?RECORD,ServiceId,Vsn,Source}<-Z].
+		   X#?RECORD.service_id==ServiceId])),
+    [{XServiceId,XVsn,XGitUserId}||{?RECORD,XServiceId,XVsn,XGitUserId}<-Z].
 
 read(ServiceId,Vsn) ->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE),
-		   X#?RECORD.id==ServiceId,
+		   X#?RECORD.service_id==ServiceId,
 		     X#?RECORD.vsn==Vsn])),
-    [{ServiceId,Vsn,Source}||{?RECORD,ServiceId,Vsn,Source}<-Z].
+    [{XServiceId,XVsn,XGitUserId}||{?RECORD,XServiceId,XVsn,XGitUserId}<-Z].
 
 update(Id,Vsn,NewVsn,NewSource) ->
     F = fun() -> 
 		ServiceDef=[X||X<-mnesia:read({?TABLE,Id}),
-			    X#?RECORD.id==Id,X#?RECORD.vsn==Vsn],
+			    X#?RECORD.service_id==Id,X#?RECORD.vsn==Vsn],
 		case ServiceDef of
 		    []->
 			mnesia:abort(?TABLE);
 		    [S1]->
 			mnesia:delete_object(S1), 
-			mnesia:write(#?RECORD{id=Id,vsn=NewVsn,source=NewSource})
+			mnesia:write(#?RECORD{service_id=Id,vsn=NewVsn,git_user_id=NewSource})
 		end
 	end,
     mnesia:transaction(F).
@@ -67,7 +68,7 @@ delete(Id,Vsn) ->
 
     F = fun() -> 
 		ServiceDef=[X||X<-mnesia:read({?TABLE,Id}),
-			    X#?RECORD.id==Id,X#?RECORD.vsn==Vsn],
+			    X#?RECORD.service_id==Id,X#?RECORD.vsn==Vsn],
 		case ServiceDef of
 		    []->
 			mnesia:abort(?TABLE);
