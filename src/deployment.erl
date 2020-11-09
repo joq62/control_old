@@ -11,9 +11,14 @@
 %% --------------------------------------------------------------------
 
 %-compile(export_all).
--export([create_spec/3,
+-export([create_spec/4,
 	 read_spec/2,
 	 delete_spec/2]).
+
+%% ====================================================================
+%% External functions
+%% ====================================================================
+
 
 %% --------------------------------------------------------------------
 %% Function:create(ServiceId,Vsn,HostId,VmId)
@@ -21,10 +26,10 @@
 %% Returns: ok |{error,Err}
 %
 %% --------------------------------------------------------------------
-create_spec(AppId,AppVsn,ServiceList)->
-    Reply=case db_deployment_spec:read(AppId,AppVsn) of
+create_spec(AppId,AppVsn,Restriction,ServiceList)->
+    Reply=case if_db:deployment_spec_read(AppId,AppVsn) of
 	      []->
-		  db_deployment_spec:create(AppId,AppVsn,ServiceList),
+		  if_db:deployment_spec_create(AppId,AppVsn,Restriction,ServiceList),
 		  ok;
 	      Err->
 		  {error,[already_defined,Err,AppId,AppVsn]}
@@ -32,14 +37,11 @@ create_spec(AppId,AppVsn,ServiceList)->
     Reply.
 
 read_spec(AppId,AppVsn)->
-    db_deployment_spec:read(AppId,AppVsn).
+    if_db:deployment_spec_read(AppId,AppVsn).
 
 delete_spec(AppId,AppVsn)->
-    db_deployment_spec:delete(AppId,AppVsn).
+    if_db:deployment_spec_delete(AppId,AppVsn).
 
-%% ====================================================================
-%% External functions
-%% ====================================================================
 
 
 %% --------------------------------------------------------------------

@@ -30,8 +30,8 @@
 	 create_deployment_spec/3,
 	 delete_deployment_spec/2,
 	 read_deployment_spec/2,
-	 add_deployment_spec/2,
-	 remove_deployment_spec/2
+	 deploy_app/2,
+	 depricate_app/1
 	]).
 
 -export([start/0,
@@ -57,7 +57,6 @@
 start()-> gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 stop()-> gen_server:call(?MODULE, {stop},infinity).
 
-
 ping()-> 
     gen_server:call(?MODULE, {ping},infinity).
 
@@ -67,18 +66,17 @@ create_service(ServiceId,Vsn,HostId,VmId)->
 delete_service(ServiceId,Vsn,HostId,VmId)->
     gen_server:call(?MODULE, {delete_service,ServiceId,Vsn,HostId,VmId},infinity).  
 
-
-add_deployment_spec(AppId,AppVsn)->
-    gen_server:call(?MODULE, {add_deployment_spec,AppId,AppVsn},infinity).
-remove_deployment_spec(AppId,AppVsn)->
-    gen_server:call(?MODULE, {remove_deployment_spec,AppId,AppVsn},infinity).
-
+deploy_app(AppId,AppVsn)->
+    gen_server:call(?MODULE, {deploy_app,AppId,AppVsn},infinity).
+depricate_app(DeploymentId)->
+    gen_server:call(?MODULE, {depricate_app,DeploymentId},infinity).
 create_deployment_spec(AppId,AppVsn,ServiceList)->
     gen_server:call(?MODULE, {create_deployment_spec,AppId,AppVsn,ServiceList},infinity).
 delete_deployment_spec(AppId,AppVsn)->
     gen_server:call(?MODULE, {delete_deployment_spec,AppId,AppVsn},infinity).
 read_deployment_spec(AppId,AppVsn)->
     gen_server:call(?MODULE, {read_deployment_spec,AppId,AppVsn},infinity).
+
 
 heart_beat(Interval,Result)->
     gen_server:cast(?MODULE, {heart_beat,Interval,Result}).
@@ -124,12 +122,12 @@ handle_call({delete_service,ServiceId,Vsn,HostId,VmId},_From,State) ->
     Reply=rpc:call(node(),service,delete,[ServiceId,Vsn,HostId,VmId],5000),
     {reply, Reply, State};
 
-handle_call({add_deployment_spec,_AppId,_AppVsn},_From,State) ->
-    Reply=not_implemented,
+handle_call({deploy_app,AppId,AppVsn},_From,State) ->
+    Reply=rpc:call(node(),deployment,deploy_app,[AppId,AppVsn],5000),
     {reply, Reply, State};
 
-handle_call({remove_deployment_spec,_AppId,_AppVsn},_From,State) ->
-    Reply=not_implemented,
+handle_call({depricate_app,DeploymentId},_From,State) ->
+    Reply=rpc:call(node(),deployment,depricate_app,[DeploymentId],5000),
     {reply, Reply, State};
 
 handle_call({create_deployment_spec,AppId,AppVsn,ServiceList},_From,State) ->
